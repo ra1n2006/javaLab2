@@ -16,4 +16,8 @@ public class ShopsService {
     public String delete(String where){
         return "[заглушка] DELETE shops: where=" + where;
     }
+
+    public String createIndex(String name, String column){
+        return "[заглушка] CREATE INDEX shops: name=" + name + ", column=" + column;
+    }
 }
