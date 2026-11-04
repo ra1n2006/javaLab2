@@ -216,31 +216,26 @@ class CommandLineInterface {
         String[] words = query.split("\\s+");
         String first = words[0].toUpperCase();
         String second = words.length > 1 ? words[1].toUpperCase() : "";
-        if (first.equals("UPDATE")) {
-            throw new IllegalArgumentException("Неверный UPDATE. Пример: UPDATE goods SET price = 60 WHERE id = 1;");
+        switch (first) {
+            case "UPDATE":
+                throw new IllegalArgumentException("Неверный UPDATE. Пример: UPDATE goods SET price = 60 WHERE id = 1;");
+            case "DELETE":
+                throw new IllegalArgumentException("Неверный DELETE. Пример: DELETE FROM goods WHERE name = 'Банан';");
+            case "SELECT":
+                throw new IllegalArgumentException("Неверный SELECT. Пример: SELECT * FROM goods;");
+            case "INSERT":
+                throw new IllegalArgumentException("Неверный INSERT. Пример: INSERT INTO shops (id, city) VALUES (2, 'Киров');");
+            case "CREATE":
+                if (second.equals("INDEX"))
+                    throw new IllegalArgumentException("Неверный CREATE INDEX. Пример: CREATE INDEX idx_goods_name ON goods (name);");
+                if (second.equals("TABLE"))
+                    throw new IllegalArgumentException("Неверный CREATE TABLE. Пример: CREATE TABLE goods (id INT, name STRING, price DOUBLE);");
+                throw new IllegalArgumentException("После CREATE ожидается TABLE или INDEX");
+            case "DROP":
+                throw new IllegalArgumentException("Неверный DROP TABLE. Пример: DROP TABLE goods;");
+            default:
+                throw new IllegalArgumentException("Неизвестная команда: " + first + ". Введите HELP; для списка команд");
         }
-        if (first.equals("DELETE")) {
-            throw new IllegalArgumentException("Неверный DELETE. Пример: DELETE FROM goods WHERE name = 'Банан';");
-        }
-        if (first.equals("SELECT")) {
-            throw new IllegalArgumentException("Неверный SELECT. Пример: SELECT * FROM goods;");
-        }
-        if (first.equals("INSERT")) {
-            throw new IllegalArgumentException("Неверный INSERT. Пример: INSERT INTO shops (id, city) VALUES (2, 'Киров');");
-        }
-        if (first.equals("CREATE") && second.equals("INDEX")) {
-            throw new IllegalArgumentException("Неверный CREATE INDEX. Пример: CREATE INDEX idx_goods_name ON goods (name);");
-        }
-        if (first.equals("CREATE") && second.equals("TABLE")) {
-            throw new IllegalArgumentException("Неверный CREATE TABLE. Пример: CREATE TABLE goods (id INT, name STRING, price DOUBLE);");
-        }
-        if (first.equals("CREATE")) {
-            throw new IllegalArgumentException("После CREATE ожидается TABLE или INDEX");
-        }
-        if (first.equals("DROP")) {
-            throw new IllegalArgumentException("Неверный DROP TABLE. Пример: DROP TABLE goods;");
-        }
-        throw new IllegalArgumentException("Неизвестная команда: " + first + ". Введите HELP; для списка команд");
     }
 }
 
