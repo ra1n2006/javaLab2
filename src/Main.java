@@ -1,4 +1,4 @@
-import Cli.CommandLineInterface;
+import cli.CommandLineInterface;
 
 /**
  * Точка входа в программу.
