@@ -1,7 +1,5 @@
 package service;
 
-import repository.GoodsRepository;
-
 import java.util.*;
 
 enum Opertator {
@@ -107,14 +105,14 @@ class Parser {
     }
 }
 
-public class GoodsService {
+public class Service {
 //    private Repository repository;
 
 //    public GoodsService(Repository Repository) {
 //        this.repository = repository;
 //    }
 
-    public GoodsService() {
+    public Service() {
 
     }
 
