@@ -1,6 +1,6 @@
 package service;
 
-import repository.GoodsRepository;
+import repository.Repository;
 
 import java.util.*;
 
