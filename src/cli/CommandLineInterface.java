@@ -2,8 +2,7 @@ package cli;
 
 import java.util.Scanner;
 
-import service.GoodsService;
-//import service.ShopsService;
+import service.Service;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
