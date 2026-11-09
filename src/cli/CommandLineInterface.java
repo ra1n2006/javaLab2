@@ -3,7 +3,7 @@ package cli;
 import java.util.Scanner;
 
 import service.GoodsService;
-import service.ShopsService;
+//import service.ShopsService;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,11 +23,11 @@ public class CommandLineInterface {
     /**
      * Сервис таблицы shops.
      */
-    private final ShopsService shopsService;
+//    private final ShopsService shopsService;
     /**
      * Сервис таблицы goods.
      */
-    private final GoodsService goodsService;
+//    private final GoodsService goodsService;
     /**
      * Шаблон SELECT. Группы: 1 — столбцы, 2 — таблица, 3 — условие WHERE (может отсутствовать).
      */
@@ -78,8 +78,8 @@ public class CommandLineInterface {
      */
     public CommandLineInterface() {
         this.scanner = new Scanner(System.in);
-        this.shopsService = new ShopsService();
-        this.goodsService = new GoodsService();
+//        this.shopsService = new ShopsService();
+//        this.goodsService = new GoodsService();
     }
 
     /**
@@ -161,8 +161,8 @@ public class CommandLineInterface {
             String columns = m.group(1);
             String table = m.group(2);
             String where = m.group(3);
-            if (table.equalsIgnoreCase("goods")) return goodsService.select(columns, where);
-            if (table.equalsIgnoreCase("shops")) return shopsService.select(columns, where);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.select(columns, where);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.select(columns, where);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = INSERT.matcher(query);
@@ -170,8 +170,8 @@ public class CommandLineInterface {
             String columns = m.group(2);
             String table = m.group(1);
             String values = m.group(3);
-            if (table.equalsIgnoreCase("goods")) return goodsService.insert(columns, values);
-            if (table.equalsIgnoreCase("shops")) return shopsService.insert(columns, values);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.insert(columns, values);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.insert(columns, values);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = UPDATE.matcher(query);
@@ -179,16 +179,16 @@ public class CommandLineInterface {
             String set = m.group(2);
             String table = m.group(1);
             String where = m.group(3);
-            if (table.equalsIgnoreCase("goods")) return goodsService.update(set, where);
-            if (table.equalsIgnoreCase("shops")) return shopsService.update(set, where);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.update(set, where);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.update(set, where);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = DELETE.matcher(query);
         if (m.matches()) {
             String table = m.group(1);
             String where = m.group(2);
-            if (table.equalsIgnoreCase("goods")) return goodsService.delete(where);
-            if (table.equalsIgnoreCase("shops")) return shopsService.delete(where);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.delete(where);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.delete(where);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = CREATE_INDEX.matcher(query);
@@ -196,23 +196,23 @@ public class CommandLineInterface {
             String name = m.group(1);
             String table = m.group(2);
             String column = m.group(3);
-            if (table.equalsIgnoreCase("goods")) return goodsService.createIndex(name, column);
-            if (table.equalsIgnoreCase("shops")) return shopsService.createIndex(name, column);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.createIndex(name, column);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.createIndex(name, column);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = CREATE_TABLE.matcher(query);
         if (m.matches()) {
             String table = m.group(1);
             String columns = m.group(2);
-            if (table.equalsIgnoreCase("goods")) return goodsService.createTable(columns);
-            if (table.equalsIgnoreCase("shops")) return shopsService.createTable(columns);
+//            if (table.equalsIgnoreCase("goods")) return goodsService.createTable(columns);
+//            if (table.equalsIgnoreCase("shops")) return shopsService.createTable(columns);
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         m = DROP_TABLE.matcher(query);
         if (m.matches()) {
             String table = m.group(1);
-            if (table.equalsIgnoreCase("goods")) return goodsService.dropTable();
-            if (table.equalsIgnoreCase("shops")) return shopsService.dropTable();
+//            if (table.equalsIgnoreCase("goods")) return goodsService.dropTable();
+//            if (table.equalsIgnoreCase("shops")) return shopsService.dropTable();
             throw new IllegalArgumentException("Таблица не найдена: " + table);
         }
         String[] words = query.split("\\s+");
