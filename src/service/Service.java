@@ -64,10 +64,11 @@ public class Service {
     public void select(String tableName, String cols, String condition) {
         List<String> colsList = Arrays.stream(cols.split(",")).toList();
         List<List<Condition>> conditionList = Parser.parseComplexCondition(condition);
-//        return repository.select(tableName, conditionList);
+//        repository.select(tableName, conditionList); - вернет мне все строки, подходящие под condition
+//        надо оставить в них те колонки, которые есть в colsList и вернуть в консольный интерфейс
     }
 
-    public void insert(String tableName, String cols, String values) {
+    public void insert(String tableName, String cols, String values) throws IllegalArgumentException {
         List<String> colsNames = new ArrayList<>();
         if (cols == null) {
 //            colsNames = repository.getColumns(tableName);
@@ -87,10 +88,12 @@ public class Service {
     public void delete(String tableName, String condition){
         List<List<Condition>> conditionList = Parser.parseComplexCondition(condition);
 //        return repository.insert(tableName, conditionList);
+        // вернуть сообщение об успешном удалении, если repo.insert не выбросило исключений
     }
 
     public void update(String tableName, String set, String where) {
         Map<String, Object> entries = Parser.parseSet(set);
 //        return repository.update(tableName, entries);
+        // вернуть сообщение об успешном обновлении, если repo.update не выбросило исключений
     }
 }
