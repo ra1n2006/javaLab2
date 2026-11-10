@@ -5,9 +5,8 @@ import model.Shop;
 
 import java.util.*;
 import java.io.IOException;
-import service.Condition;
+import config.Condition;
 
-import service.GoodsService;
 
 
 
