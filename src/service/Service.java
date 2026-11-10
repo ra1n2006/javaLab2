@@ -8,12 +8,12 @@ class Parser {
         for (String sign : new String[]{">=", "<=", "=", ">", "<"}) {
             int i = cond.indexOf(sign);
             if (i > 0) {
-                Opertator op = switch (sign) {
-                    case "="  -> Opertator.EQ;
-                    case ">=" -> Opertator.GE;
-                    case "<=" -> Opertator.LE;
-                    case ">"  -> Opertator.G;
-                    default   -> Opertator.L;
+                Operator op = switch (sign) {
+                    case "="  -> Operator.EQ;
+                    case ">=" -> Operator.GE;
+                    case "<=" -> Operator.LE;
+                    case ">"  -> Operator.G;
+                    default   -> Operator.L;
                 };
                 return new Condition(cond.substring(0, i).trim(), op, cond.substring(i + sign.length()).trim());
             }
@@ -50,7 +50,7 @@ class Parser {
     }
 }
 
-public class GoodsService {
+public class Service {
 //    private Repository repository;
 
 //    public GoodsService(Repository Repository) {
