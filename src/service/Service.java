@@ -1,64 +1,7 @@
 package service;
 
-import repository.Repository;
-
 import java.util.*;
-
-enum Opertator {
-    EQ,
-    EQS,
-    GE,
-    LE,
-    G,
-    L
-}
-
-class Condition {
-    private String col;
-    private Opertator op;
-    private Object value;
-
-    Condition(String col, Opertator op, Object value) {
-        this.col = col;
-        this.op = op;
-        this.value = value;
-    }
-
-    private boolean result(Object actual) {
-        if (actual == null) return false;
-
-        if (op == Opertator.EQS)                       // точное равенство строк
-            return actual instanceof String a && value instanceof String b && a.equals(b);
-
-        int c;
-        if (actual instanceof Number a && value instanceof Number b)
-            c = Double.compare(a.doubleValue(), b.doubleValue());
-        else if (actual instanceof Boolean a && value instanceof Boolean b)
-            c = Boolean.compare(a, b);
-        else if (actual instanceof String a && value instanceof String b)
-            c = a.compareTo(b);
-        else
-            throw new IllegalArgumentException("Нельзя сравнить столбец " + col + " (" +
-                    actual.getClass().getSimpleName() + ") со значением " + value);
-
-        return switch (op) {
-            case EQ -> c == 0;
-            case G  -> c > 0;
-            case L  -> c < 0;
-            case GE -> c >= 0;
-            case LE -> c <= 0;
-            case EQS -> false;
-        };
-    }
-
-    public boolean matches(Map<String, Object> row, List<List<Condition>> where) {
-        if (where.isEmpty()) return true;
-
-        return where.stream().anyMatch(group ->
-                group.stream().allMatch(cond ->
-                        cond.result(row.get(cond.col))));
-    }
-}
+import config.*;
 
 class Parser {
     public static Condition parseSingleCondition(String cond) {
@@ -114,7 +57,7 @@ public class GoodsService {
 //        this.repository = repository;
 //    }
 
-    public GoodsService() {
+    public Service() {
 
     }
 
