@@ -30,4 +30,8 @@ public class JsonDataManager {
     public Map<String, Object> convertToMap(Object object) {
         return objectMapper.convertValue(object, Map.class);
     }
+
+    public <T> T convertToObject(Map<String, Object> data, Class<T> type) {
+        return objectMapper.convertValue(data, type);
+    }
 }
