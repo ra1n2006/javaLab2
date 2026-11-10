@@ -107,7 +107,61 @@ public class Repository {
     }
 
 
-    public void update(String tableName, Map<String, Object> data) {
+    public void update(String tableName, Map<String, Object> data, List<List<Condition>> where) throws IOException{
+
+        JsonDataManager jsonDataManager = new JsonDataManager();
+
+        String fileName = "data/" + tableName.toLowerCase() + ".json";
+
+        if (!tableName.equalsIgnoreCase("goods") && !tableName.equalsIgnoreCase("shops")) {
+            throw new IllegalArgumentException("Unknown table: " + tableName);
+        }
+
+        List<String> columns = getColumns(tableName);
+
+        for (String column : data.keySet()) {
+            if (!columns.contains(column)) {
+                throw new IllegalArgumentException("Unknown column: " + column);
+            }
+        }
+
+        Map<String, ?> oldData;
+
+        if (tableName.equalsIgnoreCase("goods")) {
+            oldData = jsonDataManager.read(fileName, Good.class);
+        } else {
+            oldData = jsonDataManager.read(fileName, Shop.class);
+        }
+
+        Map<String, Object> nowData = new HashMap<>(oldData);
+
+        for (Map.Entry<String, ?> entry : oldData.entrySet()) {
+
+            Object object = entry.getValue();
+
+            Integer id = Integer.valueOf(entry.getKey());
+
+            Map<String, Object> row = jsonDataManager.convertToMap(object);
+
+            row.put("id", id);
+
+            if (Condition.matches(row, where)) {
+                row.putAll(data);
+            }
+
+            Object updatedObject;
+
+            if (tableName.equalsIgnoreCase("goods")) {
+                updatedObject = jsonDataManager.convertToObject(row, Good.class);
+            }
+            else {
+                updatedObject = jsonDataManager.convertToObject(row, Shop.class);
+            }
+
+            nowData.put(entry.getKey(), updatedObject);
+        }
+
+        jsonDataManager.write(fileName, nowData);
 
     }
 
