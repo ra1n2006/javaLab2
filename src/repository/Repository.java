@@ -7,10 +7,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.io.IOException;
-import service.Condition;
-
-import service.GoodsService;
-
+import config.Condition;
 
 
 public class Repository {
