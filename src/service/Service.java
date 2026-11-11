@@ -1,5 +1,6 @@
 package service;
 
+import java.io.IOException;
 import java.util.*;
 import config.*;
 import model.Column;
@@ -64,7 +65,12 @@ public class Service {
     public String select(String tableName, String cols, String condition) {
         List<String> colsList = new ArrayList<>();
         List<List<Condition>> conditionList = new ArrayList<>();
-        Table t = repository.load(tableName);
+        final Table t;
+        try {
+            t = repository.getTable(tableName);
+        }catch (Exception e) {
+            return "таблицы не существует";
+        }
         if (cols.trim().equals("*")) {
             colsList = t.columnNames();
         } else {
@@ -89,7 +95,12 @@ public class Service {
     }
 
     public String insert(String tableName, String cols, String values) throws IllegalArgumentException {
-        Table t = repository.load(tableName);
+        Table t = new Table();
+        try {
+            t = repository.getTable(tableName);
+        }catch (Exception e) {
+            return "таблицы не существует";
+        }
         List<String> names = (cols == null)
                 ? t.columnNames()
                 : Arrays.stream(cols.split(",")).map(String::trim).toList();
@@ -106,23 +117,41 @@ public class Service {
         }
 
         t.getRows().add(row);
-        repository.save(t);
+        try {
+            repository.createTable(t);
+        }catch (IOException e) {
+            return "ошибка при записи данных";
+        }
         return "Строка успешно добавлена";
     }
 
     public String delete(String tableName, String condition) {
-        Table t = repository.load(tableName);
+        Table t = new Table();
+        try {
+            t = repository.getTable(tableName);
+        }catch (Exception e) {
+            return "таблицы не существует";
+        }
         List<List<Condition>> conditionList = (condition == null)
                 ? new ArrayList<>()
                 : Parser.parseComplexCondition(condition);
 
         t.getRows().removeIf(row -> Condition.matches(row, conditionList));
-        repository.save(t);
+        try {
+            repository.createTable(t);
+        }catch (IOException e) {
+            return "ошибка при удалении данных";
+        }
         return "Операция удаления выполнена";
     }
 
     public String update(String tableName, String set, String condition) {
-        Table t = repository.load(tableName);
+        final Table t;
+        try {
+            t = repository.getTable(tableName);
+        } catch (Exception e) {
+            return "таблицы не существует";
+        }
 
         Map<String, Object> changes = new LinkedHashMap<>();
         Parser.parseSet(set).forEach((name, v) -> {
@@ -141,7 +170,11 @@ public class Service {
             row.putAll(changes);
             count++;
         }
-        repository.save(t);
+        try {
+            repository.createTable(t);
+        }catch (IOException e) {
+            return "ошибка при удалении данных";
+        }
         return "Обновлено строк: " + count;
     }
 }
