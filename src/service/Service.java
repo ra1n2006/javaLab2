@@ -1,9 +1,8 @@
 package service;
 
-import java.io.IOException;
 import java.util.*;
 import config.*;
-import model.Shop;
+import model.Column;
 import model.Table;
 import repository.Repository;
 
@@ -62,70 +61,87 @@ public class Service {
         this.repository = repository;
     }
 
-    public void select(String tableName, String cols, String condition) {
+    public String select(String tableName, String cols, String condition) {
         List<String> colsList = new ArrayList<>();
         List<List<Condition>> conditionList = new ArrayList<>();
-//        Table t = repository.load(tableName);
-//        if (cols.trim().equals("*")) {
-//            colsList = t.columnNames();
-//        } else {
-//            colsList = Arrays.stream(cols.split(",")).toList();
-//        }
-//        for (Map<String, Object> row: t.getRows()) {
-//
-//        }
+        Table t = repository.load(tableName);
+        if (cols.trim().equals("*")) {
+            colsList = t.columnNames();
+        } else {
+            colsList = Arrays.stream(cols.split(",")).map(c -> t.column(c).getName()).toList();
+        }
         if (condition != null) {
             conditionList = Parser.parseComplexCondition(condition);
-        } else {
-            conditionList = new ArrayList<>();
         }
-        try {
-            List<?> rows = repository.select(tableName, conditionList);
-            for (Object row : rows) {
-                // представить объект в виде словаря и вывести только нужные колонки
-                System.out.println(row.toString());
+
+        StringBuilder sb = new StringBuilder(String.join(" | ", colsList)).append('\n');
+        int count = 0;
+        for (Map<String, Object> row : t.getRows()) {
+            if (!Condition.matches(row, conditionList)) continue;
+            for (String col : colsList) {
+                sb.append(row.get(col)).append(" | ");
             }
-        }catch (IOException e) {
-            System.out.println(e.getMessage());
+            sb.setLength(sb.length() - 3);
+            sb.append('\n');
+            count++;
         }
-//        надо оставить в них те колонки, которые есть в colsList и вернуть в консольный интерфейс
+        return sb.append("Строк: ").append(count).toString();
     }
 
-    public void insert(String tableName, String cols, String values) throws IllegalArgumentException {
-        List<String> colsNames = new ArrayList<>();
-        if (cols == null) {
-            colsNames = repository.getColumns(tableName);
-        } else {
-            colsNames = Arrays.stream(cols.split(",")).map(String::trim).toList();
-        }
+    public String insert(String tableName, String cols, String values) throws IllegalArgumentException {
+        Table t = repository.load(tableName);
+        List<String> names = (cols == null)
+                ? t.columnNames()
+                : Arrays.stream(cols.split(",")).map(String::trim).toList();
 
         String[] vals = values.trim().substring(1, values.trim().length() - 1).split(",");
-        if (vals.length != colsNames.size())
-            throw new IllegalArgumentException("Столбцов " + colsNames.size() + ", значений " + vals.length);
+        if (vals.length != names.size())
+            throw new IllegalArgumentException("Ошибка в написании запроса: столбцов " + names.size() + ", значений " + vals.length);
 
-        Map<String, Object> rows = new LinkedHashMap<>();
-        for (int i = 0; i < vals.length; i++) rows.put(colsNames.get(i), Parser.parseValue(vals[i]));
-        try {
-            repository.insert(tableName, rows);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
+        Map<String, Object> row = new LinkedHashMap<>();
+        for (String c : t.columnNames()) row.put(c, null);
+        for (int i = 0; i < vals.length; i++) {
+            Column col = t.column(names.get(i));
+            row.put(col.getName(), col.getType().cast(Parser.parseValue(vals[i])));
         }
+
+        t.getRows().add(row);
+        repository.save(t);
+        return "Строка успешно добавлена";
     }
 
-    public void delete(String tableName, String condition){
-        List<List<Condition>> conditionList = Parser.parseComplexCondition(condition);
-        try {
-            repository.delete(tableName, conditionList);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-//        return repository.insert(tableName, conditionList);
-        // вернуть сообщение об успешном удалении, если repo.insert не выбросило исключений
+    public String delete(String tableName, String condition) {
+        Table t = repository.load(tableName);
+        List<List<Condition>> conditionList = (condition == null)
+                ? new ArrayList<>()
+                : Parser.parseComplexCondition(condition);
+
+        t.getRows().removeIf(row -> Condition.matches(row, conditionList));
+        repository.save(t);
+        return "Операция удаления выполнена";
     }
 
-    public void update(String tableName, String set, String where) {
-        Map<String, Object> entries = Parser.parseSet(set);
-//        return repository.update(tableName, entries);
-        // вернуть сообщение об успешном обновлении, если repo.update не выбросило исключений
+    public String update(String tableName, String set, String condition) {
+        Table t = repository.load(tableName);
+
+        Map<String, Object> changes = new LinkedHashMap<>();
+        Parser.parseSet(set).forEach((name, v) -> {
+            Column col = t.column(name);
+            changes.put(col.getName(), col.getType().cast(v));
+        });
+
+        List<List<Condition>> conditionList = new ArrayList<>();
+        if (condition != null) {
+            conditionList = Parser.parseComplexCondition(condition);
+        }
+
+        int count = 0;
+        for (Map<String, Object> row : t.getRows()) {
+            if (!Condition.matches(row, conditionList)) continue;
+            row.putAll(changes);
+            count++;
+        }
+        repository.save(t);
+        return "Обновлено строк: " + count;
     }
 }
