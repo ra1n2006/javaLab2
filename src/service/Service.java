@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.*;
 import config.*;
 import model.Column;
+import model.ColumnType;
+import model.ForeignKey;
 import model.Table;
 import repository.Repository;
 
@@ -35,13 +37,15 @@ class Parser {
                 .toList();
     }
 
-    public static Object parseValue(String row) {
-        row = row.trim();
-        if (row.startsWith("'") && row.endsWith("'") && row.length() >= 2)
-            return row.substring(1, row.length() - 1);
-        if (row.contains("."))
-            return Double.parseDouble(row);
-        return Integer.parseInt(row);
+    public static Object parseValue(String strk) {
+        strk = strk.trim();
+        if (strk.startsWith("'") && strk.endsWith("'") && strk.length() >= 2)
+            return strk.substring(1, strk.length() - 1);
+        if (strk.contains("."))
+            return Double.parseDouble(strk);
+        if (strk.equalsIgnoreCase("true") || strk.equalsIgnoreCase("false"))
+            return Boolean.parseBoolean(strk);
+        return Integer.parseInt(strk);
     }
 
     public static Map<String, Object> parseSet(String set) {
@@ -53,6 +57,16 @@ class Parser {
         }
         return table;
     }
+
+    public static ForeignKey parseForeignKey(String def) {
+        String ref = def.substring(def.toUpperCase().indexOf("REFERENCES") + 10).trim();   // "shops(id)"
+        if (!ref.contains("(") || !ref.contains(")"))
+            throw new IllegalArgumentException("Ожидается REFERENCES таблица(столбец)");
+
+        String table = ref.substring(0, ref.indexOf('(')).trim();                          // "shops"
+        String column = ref.substring(ref.indexOf('(') + 1, ref.indexOf(')')).trim();      // "id"
+        return new ForeignKey(table, column);
+    }
 }
 
 public class Service {
@@ -60,6 +74,17 @@ public class Service {
 
     public Service(Repository repository) {
         this.repository = repository;
+        initDefaultTables();
+    }
+
+    private void initDefaultTables() {
+        if (!repository.exists("shops"))
+            createTable("shops",
+                    "id INT PRIMARY KEY, address STRING, city STRING, isOpen24h BOOLEAN");
+
+        if (!repository.exists("goods"))
+            createTable("goods",
+                    "id INT PRIMARY KEY, name STRING, category STRING, price DOUBLE, shopId INT REFERENCES shops(id)");
     }
 
     public String select(String tableName, String cols, String condition) {
@@ -99,6 +124,7 @@ public class Service {
         try {
             t = repository.getTable(tableName);
         }catch (Exception e) {
+            e.printStackTrace();
             return "таблицы не существует";
         }
         List<String> names = (cols == null)
@@ -118,7 +144,7 @@ public class Service {
 
         t.getRows().add(row);
         try {
-            repository.createTable(t);
+            repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при записи данных";
         }
@@ -138,7 +164,7 @@ public class Service {
 
         t.getRows().removeIf(row -> Condition.matches(row, conditionList));
         try {
-            repository.createTable(t);
+            repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при удалении данных";
         }
@@ -171,10 +197,41 @@ public class Service {
             count++;
         }
         try {
-            repository.createTable(t);
+            repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при удалении данных";
         }
         return "Обновлено строк: " + count;
+    }
+
+    public String createTable(String tableName, String columnDefs) {
+        if (repository.exists(tableName))
+            throw new IllegalArgumentException("Таблица уже существует: " + tableName);
+
+        List<Column> columns = new ArrayList<>();
+        for (String def : columnDefs.split(",")) {
+            String[] w = def.trim().split("\\s+");
+            if (w.length < 2)
+                throw new IllegalArgumentException("Неверное описание столбца: " + def.trim());
+
+            Column col = new Column(w[0], ColumnType.valueOf(w[1].toUpperCase()));
+            String rest = def.toUpperCase();
+
+            if (rest.contains("PRIMARY KEY")) {
+                col.setPrimaryKey(true);
+                col.setNotNull(true);
+            }
+            if (rest.contains("NOT NULL")) col.setNotNull(true);
+            if (rest.contains("REFERENCES")) col.setForeignKey(Parser.parseForeignKey(def));
+
+            columns.add(col);
+        }
+
+        try {
+            repository.createTable(new Table(tableName, columns));
+        } catch (IOException e) {
+            return "ошибка при записи данных";
+        }
+        return "Таблица " + tableName + " создана";
     }
 }

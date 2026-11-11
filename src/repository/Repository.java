@@ -17,7 +17,7 @@ public class Repository {
     }
 
     public void createTable(Table table) throws IOException {
-
+        new File("data").mkdirs();
         String fileName = "data/" + table.getName() + ".json";
 
         objectMapper.writeValue(new File(fileName), table);
@@ -46,5 +46,9 @@ public class Repository {
         String fileName = "data/" + table.getName() + ".json";
 
         objectMapper.writeValue(new File(fileName), table);
+    }
+
+    public boolean exists(String tableName) {
+        return new File("data/" + tableName + ".json").exists();
     }
 }
