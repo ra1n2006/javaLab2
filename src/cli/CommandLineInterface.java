@@ -85,16 +85,35 @@ public class CommandLineInterface {
     }
 
     private void printHelp() {
-        System.out.println("Поддерживаемые команды (каждая заканчивается ;): SELECT, UPDATE, INSERT, DELETE, CREATE INDEX, CREATE TABLE, DROP TABLE");
-        System.out.println("  SELECT * FROM goods; или SELECT name, price FROM goods WHERE price > 100;");
-        System.out.println("  UPDATE goods SET price = 60 WHERE id = 1;");
-        System.out.println("  INSERT INTO shops (id, city) VALUES (2, 'Киров'); или INSERT INTO goods VALUES (1, 'Банан', 50.0);");
-        System.out.println("  DELETE FROM goods WHERE name = 'Банан';");
-        System.out.println("  CREATE INDEX idx_goods_name ON goods (name);");
-        System.out.println("  CREATE TABLE goods (id INT, name STRING, price DOUBLE);");
-        System.out.println("  DROP TABLE goods;");
-        System.out.println("  Доступные таблицы: goods, shops");
-        System.out.println("  Вспомогательные команды: EXIT, HELP");
+        System.out.println("Поддерживаемые SQL-команды:");
+        System.out.println();
+        System.out.println("1. SELECT — получение данных:");
+        System.out.println("   SELECT * FROM goods;");
+        System.out.println("   SELECT name, price FROM goods WHERE price > 100;");
+        System.out.println();
+        System.out.println("2. INSERT — добавление записи:");
+        System.out.println("   INSERT INTO goods (id, name, price) VALUES (1, 'Банан', 50.0);");
+        System.out.println();
+        System.out.println("3. UPDATE — изменение записей:");
+        System.out.println("   UPDATE goods SET price = 60 WHERE id = 1;");
+        System.out.println();
+        System.out.println("4. DELETE — удаление записей:");
+        System.out.println("   DELETE FROM goods WHERE id = 1;");
+        System.out.println();
+        System.out.println("5. CREATE TABLE — создание таблицы:");
+        System.out.println("   CREATE TABLE test (id INT, name STRING);");
+        System.out.println();
+        System.out.println("6. CREATE INDEX — создание индекса:");
+        System.out.println("   CREATE INDEX idx_test ON test (id);");
+        System.out.println();
+        System.out.println("7. DROP TABLE — удаление таблицы:");
+        System.out.println("   DROP TABLE test;");
+        System.out.println();
+        System.out.println("Дополнительные команды:");
+        System.out.println("   HELP; — показать справку");
+        System.out.println("   EXIT; — выйти из программы");
+        System.out.println();
+        System.out.println("Каждый SQL-запрос должен заканчиваться символом ;");
     }
 
     private String execute(String query) {
@@ -103,61 +122,39 @@ public class CommandLineInterface {
             String columns = m.group(1);
             String table = m.group(2);
             String where = m.group(3);
-            service.select(table, columns, where);
-//            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return service.select(table, columns, where);
         }
         m = INSERT.matcher(query);
         if (m.matches()) {
             String columns = m.group(2);
             String table = m.group(1);
             String values = m.group(3);
-            service.insert(table, columns, values);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.insert(columns, values);
-//            if (table.equalsIgnoreCase("shops")) return shopsService.insert(columns, values);
-//            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return service.insert(table, columns, values);
         }
         m = UPDATE.matcher(query);
         if (m.matches()) {
             String set = m.group(2);
             String table = m.group(1);
             String where = m.group(3);
-            service.update(table, set, where);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.update(set, where);
-//            if (table.equalsIgnoreCase("shops")) return shopsService.update(set, where);
-//            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return service.update(table, set, where);
         }
         m = DELETE.matcher(query);
         if (m.matches()) {
             String table = m.group(1);
             String where = m.group(2);
-            service.delete(table, where);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.delete(where);
-//            if (table.equalsIgnoreCase("shops")) return shopsService.delete(where);
-            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return service.delete(table, where);
         }
         m = CREATE_INDEX.matcher(query);
         if (m.matches()) {
-            String name = m.group(1);
-            String table = m.group(2);
-            String column = m.group(3);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.createIndex(name, column);
-//            if (table.equalsIgnoreCase("shops")) return shopsService.createIndex(name, column);
-            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return "Команда CREATE INDEX пока не реализована. Ожидается реализация Service.";
         }
         m = CREATE_TABLE.matcher(query);
         if (m.matches()) {
-            String table = m.group(1);
-            String columns = m.group(2);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.createTable(columns);
-//            if (table.equalsIgnoreCase("shops")) return shopsService.createTable(columns);
-            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return "Команда CREATE TABLE пока не реализована. Ожидается реализация Service.";
         }
         m = DROP_TABLE.matcher(query);
         if (m.matches()) {
-            String table = m.group(1);
-//            if (table.equalsIgnoreCase("goods")) return goodsService.dropTable();
-//            if (table.equalsIgnoreCase("shops")) return shopsService.dropTable();
-            throw new IllegalArgumentException("Таблица не найдена: " + table);
+            return "Команда DROP TABLE пока не реализована. Ожидается реализация Service.";
         }
         String[] words = query.split("\\s+");
         String first = words[0].toUpperCase();
