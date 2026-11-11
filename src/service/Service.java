@@ -1,21 +1,25 @@
 package service;
 
+import java.io.IOException;
 import java.util.*;
 import config.*;
+import model.Shop;
+import repository.Repository;
 
 class Parser {
     public static Condition parseSingleCondition(String cond) {
         for (String sign : new String[]{">=", "<=", "=", ">", "<"}) {
             int i = cond.indexOf(sign);
             if (i > 0) {
+                String raw = cond.substring(i + sign.length()).trim();
                 Operator op = switch (sign) {
-                    case "="  -> Operator.EQ;
+                    case "="  -> raw.startsWith("'") ? Operator.EQS : Operator.EQ;
                     case ">=" -> Operator.GE;
                     case "<=" -> Operator.LE;
                     case ">"  -> Operator.G;
                     default   -> Operator.L;
                 };
-                return new Condition(cond.substring(0, i).trim(), op, cond.substring(i + sign.length()).trim());
+                return new Condition(cond.substring(0, i).trim(), op, parseValue(raw));
             }
         }
         throw new IllegalArgumentException("Неверное условие: " + cond);
@@ -51,27 +55,36 @@ class Parser {
 }
 
 public class Service {
-//    private Repository repository;
+    private Repository repository;
 
-//    public GoodsService(Repository Repository) {
-//        this.repository = repository;
-//    }
-
-    public Service() {
-
+    public Service(Repository repository) {
+        this.repository = repository;
     }
 
     public void select(String tableName, String cols, String condition) {
-        List<String> colsList = Arrays.stream(cols.split(",")).toList();
-        List<List<Condition>> conditionList = Parser.parseComplexCondition(condition);
-//        repository.select(tableName, conditionList); - вернет мне все строки, подходящие под condition
+//        List<String> colsList = Arrays.stream(cols.split(",")).toList();
+        List<List<Condition>> conditionList = new ArrayList<>();
+        if (condition != null) {
+            conditionList = Parser.parseComplexCondition(condition);
+        } else {
+            conditionList = new ArrayList<>();
+        }
+        try {
+            List<?> rows = repository.select(tableName, conditionList);
+            for (Object row : rows) {
+                // представить объект в виде словаря и вывести только нужные колонки
+                System.out.println(row.toString());
+            }
+        }catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
 //        надо оставить в них те колонки, которые есть в colsList и вернуть в консольный интерфейс
     }
 
     public void insert(String tableName, String cols, String values) throws IllegalArgumentException {
         List<String> colsNames = new ArrayList<>();
         if (cols == null) {
-//            colsNames = repository.getColumns(tableName);
+            colsNames = repository.getColumns(tableName);
         } else {
             colsNames = Arrays.stream(cols.split(",")).map(String::trim).toList();
         }
@@ -82,11 +95,20 @@ public class Service {
 
         Map<String, Object> rows = new LinkedHashMap<>();
         for (int i = 0; i < vals.length; i++) rows.put(colsNames.get(i), Parser.parseValue(vals[i]));
-//        return repository.insert(tableName, rows);
+        try {
+            repository.insert(tableName, rows);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public void delete(String tableName, String condition){
         List<List<Condition>> conditionList = Parser.parseComplexCondition(condition);
+        try {
+            repository.delete(tableName, conditionList);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
 //        return repository.insert(tableName, conditionList);
         // вернуть сообщение об успешном удалении, если repo.insert не выбросило исключений
     }
