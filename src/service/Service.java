@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.*;
 import config.*;
 import model.Shop;
+import model.Table;
 import repository.Repository;
 
 class Parser {
@@ -62,8 +63,17 @@ public class Service {
     }
 
     public void select(String tableName, String cols, String condition) {
-//        List<String> colsList = Arrays.stream(cols.split(",")).toList();
+        List<String> colsList = new ArrayList<>();
         List<List<Condition>> conditionList = new ArrayList<>();
+//        Table t = repository.load(tableName);
+//        if (cols.trim().equals("*")) {
+//            colsList = t.columnNames();
+//        } else {
+//            colsList = Arrays.stream(cols.split(",")).toList();
+//        }
+//        for (Map<String, Object> row: t.getRows()) {
+//
+//        }
         if (condition != null) {
             conditionList = Parser.parseComplexCondition(condition);
         } else {
