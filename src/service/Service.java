@@ -7,6 +7,7 @@ import model.Column;
 import model.ColumnType;
 import model.ForeignKey;
 import model.Table;
+import model.Index;
 import repository.Repository;
 
 class Parser {
@@ -157,6 +158,7 @@ public class Service {
 
         t.getRows().add(row);
         try {
+            rebuildIndexes(t);
             repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при записи данных";
@@ -205,6 +207,7 @@ public class Service {
 
         t.getRows().removeAll(toDelete);
         try {
+            rebuildIndexes(t);
             repository.writeTable(t);
         } catch (IOException e) {
             return "ошибка при удалении данных";
@@ -238,6 +241,7 @@ public class Service {
             count++;
         }
         try {
+            rebuildIndexes(t);
             repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при удалении данных";
@@ -301,17 +305,31 @@ public class Service {
 
     public String createIndex(String indexName, String tableName, String colName) {
         final Table t;
+
         try {
             t = repository.getTable(tableName);
         } catch (Exception e) {
             return "таблицы не существует";
         }
-
         Column col = t.column(colName);
-        if (t.getIndexes().containsKey(indexName))
-            throw new IllegalArgumentException("Индекс уже существует: " + indexName);
+        if (t.getIndexes().containsKey(indexName)) {
+            throw new IllegalArgumentException(
+                    "Индекс уже существует: " + indexName
+            );
+        }
+        Index index = new Index(col.getName());
 
-        t.getIndexes().put(indexName, col.getName());
+        for (int i = 0; i < t.getRows().size(); i++) {
+            Map<String, Object> row = t.getRows().get(i);
+            Object value = row.get(col.getName());
+            String key = value == null
+                    ? "__NULL__"
+                    : String.valueOf(value);
+            index.getValues()
+                    .computeIfAbsent(key, k -> new ArrayList<>())
+                    .add(i);
+        }
+        t.getIndexes().put(indexName, index);
         try {
             repository.writeTable(t);
         } catch (IOException e) {
@@ -320,26 +338,59 @@ public class Service {
         return "Индекс создан";
     }
 
-    private List<Map<String, Object>> findRows(Table t, List<List<Condition>> conditions) {
-        if (conditions.size() != 1) return t.getRows();
-
+    private List<Map<String, Object>> findRows(
+            Table t,
+            List<List<Condition>> conditions
+    ) {
+        if (conditions.size() != 1) {
+            return t.getRows();
+        }
         for (Condition c : conditions.get(0)) {
-            boolean isEquals = c.getOp() == Operator.EQ || c.getOp() == Operator.EQS;
-            if (isEquals && t.getIndexes().containsValue(c.getCol())) {
-                // индекс: значение столбца -> строки
-                Map<Object, List<Map<String, Object>>> index = new HashMap<>();
-                for (Map<String, Object> row : t.getRows()) {
-                    Object cell = row.get(c.getCol());
-                    if (!index.containsKey(cell)) {
-                        index.put(cell, new ArrayList<>());
-                    }
-                    index.get(cell).add(row);
+            boolean isEquals =
+                    c.getOp() == Operator.EQ ||
+                            c.getOp() == Operator.EQS;
+            if (!isEquals) {
+                continue;
+            }
+            for (Index index : t.getIndexes().values()) {
+                if (!index.getColumn().equalsIgnoreCase(c.getCol())) {
+                    continue;
                 }
-                Object value = t.column(c.getCol()).getType().cast(c.getValue());
-                if (!index.containsKey(value)) return new ArrayList<>();
-                return index.get(value);
+                Object value = t.column(c.getCol())
+                        .getType()
+                        .cast(c.getValue());
+                String key = value == null
+                        ? "__NULL__"
+                        : String.valueOf(value);
+                List<Integer> rowNumbers =
+                        index.getValues().get(key);
+                if (rowNumbers == null) {
+                    return new ArrayList<>();
+                }
+                List<Map<String, Object>> result =
+                        new ArrayList<>();
+                for (Integer rowNumber : rowNumbers) {
+                    result.add(t.getRows().get(rowNumber));
+                }
+                return result;
             }
         }
         return t.getRows();
+    }
+
+    private void rebuildIndexes(Table t) {
+        for (Index index : t.getIndexes().values()) {
+            index.getValues().clear();
+            for (int i = 0; i < t.getRows().size(); i++) {
+                Map<String, Object> row = t.getRows().get(i);
+                Object value = row.get(index.getColumn());
+                String key = value == null
+                        ? "__NULL__"
+                        : String.valueOf(value);
+                index.getValues()
+                        .computeIfAbsent(key, k -> new ArrayList<>())
+                        .add(i);
+            }
+        }
     }
 }

@@ -9,8 +9,7 @@ public class Table {
     private String name;
     private List<Column> columns = new ArrayList<>();
     private List<Map<String, Object>> rows = new ArrayList<>();
-    private Map<String, String> indexes = new LinkedHashMap<>();   // имя индекса -> столбец
-
+    private Map<String, Index> indexes = new LinkedHashMap<>();
     public Table() {}
 
     public Table(String name, List<Column> columns) {
@@ -35,6 +34,6 @@ public class Table {
     public void setColumns(List<Column> columns) { this.columns = columns; }
     public List<Map<String, Object>> getRows() { return rows; }
     public void setRows(List<Map<String, Object>> rows) { this.rows = rows; }
-    public Map<String, String> getIndexes() { return indexes; }
-    public void setIndexes(Map<String, String> indexes) { this.indexes = indexes; }
+    public Map<String, Index> getIndexes() { return indexes; }
+    public void setIndexes(Map<String, Index> indexes) { this.indexes = indexes; }
 }
