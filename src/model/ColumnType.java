@@ -1,11 +1,13 @@
 package model;
 
+import exception.TypeException;
+
 public enum ColumnType {
     INT,
     DOUBLE,
     STRING,
     BOOLEAN;
-    public Object cast(Object v) {
+    public Object cast(Object v) throws TypeException {
         if (v == null) return null;
 
         switch (this) {
@@ -22,6 +24,6 @@ public enum ColumnType {
                 if (v instanceof Boolean) return v;
                 break;
         }
-        throw new IllegalArgumentException();
+        throw new TypeException("Неизвестный тип");
     }
 }

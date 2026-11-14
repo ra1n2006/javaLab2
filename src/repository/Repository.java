@@ -2,6 +2,7 @@ package repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import exception.TableException;
 import model.Table;
 
 import java.io.File;
@@ -39,14 +40,22 @@ public class Repository {
      * в него переданный объект {@link Table}.
      *
      * @param table таблица, которую необходимо сохранить
-     * @throws IOException если произошла ошибка при создании
+     * @throws TableException если произошла ошибка при создании
      *                     или записи файла
      */
-    public void createTable(Table table) throws IOException {
-        new File("data").mkdirs();
-        String fileName = "data/" + table.getName() + ".json";
+    public void createTable(Table table) throws TableException {
+        try {
+            new File("data").mkdirs();
 
-        objectMapper.writeValue(new File(fileName), table);
+            String fileName = "data/" + table.getName() + ".json";
+
+            objectMapper.writeValue(new File(fileName), table);
+
+        } catch (IOException e) {
+            throw new TableException(
+                    "Не удалось создать таблицу: " + table.getName(), e
+            );
+        }
     }
 
     /**
@@ -55,30 +64,36 @@ public class Repository {
      *
      * @param tableName имя таблицы
      * @return объект {@link Table}, прочитанный из JSON-файла
-     * @throws IOException если файл не существует или произошла
+     * @throws TableException если файл не существует или произошла
      *                     ошибка при чтении
      */
-    public Table getTable(String tableName) throws IOException {
+    public Table getTable(String tableName) throws TableException {
 
         String fileName = "data/" + tableName + ".json";
 
-        return objectMapper.readValue(new File(fileName), Table.class);
+        try {
+            return objectMapper.readValue(new File(fileName), Table.class);
+        } catch (IOException e) {
+            throw new TableException(
+                    "Такой таблицы не существует", e
+            );
+        }
     }
 
     /**
      * Удаляет JSON-файл, соответствующий указанной таблице.
      *
      * @param tableName имя таблицы, которую необходимо удалить
-     * @throws IllegalArgumentException если файл таблицы не удалось удалить
+     * @throws TableException если файл таблицы не удалось удалить
      */
-    public void deleteTable(String tableName) {
+    public void deleteTable(String tableName) throws TableException {
 
         String fileName = "data/" + tableName + ".json";
 
         File file = new File(fileName);
 
         if (!file.delete()) {
-            throw new IllegalArgumentException("Не удалось удалить таблицу: " + tableName);
+            throw new TableException("Не удалось удалить таблицу");
         }
     }
 
@@ -90,19 +105,25 @@ public class Repository {
      * например после добавления или обновления строки.
      *
      * @param table новая версия таблицы, которую необходимо сохранить
-     * @throws IOException если произошла ошибка при записи файла
+     * @throws TableException если произошла ошибка при записи файла
      */
-    public void writeTable(Table table) throws IOException {
+    public void writeTable(Table table) throws TableException {
 
         String fileName = "data/" + table.getName() + ".json";
 
-        objectMapper.writeValue(new File(fileName), table);
+        try {
+            objectMapper.writeValue(new File(fileName), table);
+        } catch (IOException e) {
+            throw new TableException(
+                    "Не удалось сохранить таблицу", e
+            );
+        }
     }
 
     public List<Table> listTables() throws IOException {
         List<Table> tables = new ArrayList<>();
         File[] files = new File("data").listFiles();
-        if (files == null) return tables;                       // папки data ещё нет
+        if (files == null) return tables;
 
         for (File file : files) {
             if (file.getName().endsWith(".json")) {
