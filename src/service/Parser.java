@@ -46,7 +46,9 @@ public class Parser {
         if (row.equalsIgnoreCase("true") || row.equalsIgnoreCase("false"))
             return Boolean.parseBoolean(row);
         try {
-            return row.contains(".") ? Double.parseDouble(row) : Integer.parseInt(row);
+            if (row.contains("."))
+                return Double.parseDouble(row);
+            return Integer.parseInt(row);
         } catch (NumberFormatException e) {
             throw new TypeException("Неверное значение: " + row);
         }

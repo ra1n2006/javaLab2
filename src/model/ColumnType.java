@@ -24,6 +24,7 @@ public enum ColumnType {
                 if (v instanceof Boolean) return v;
                 break;
         }
-        throw new TypeException("Неизвестный тип");
+        throw new TypeException("Ожидается " + this + ", получено: " + v
+                + " (" + v.getClass().getSimpleName() + ")");
     }
 }
