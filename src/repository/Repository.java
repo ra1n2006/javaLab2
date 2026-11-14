@@ -17,7 +17,7 @@ import java.util.List;
  * Например, таблица с именем {@code goods} хранится в файле
  * {@code data/goods.json}.
  */
-public class Repository {
+public class Repository implements TableRepository{
 
     /**
      * Объект Jackson для преобразования объектов Java в JSON
@@ -42,6 +42,7 @@ public class Repository {
      * @throws IOException если произошла ошибка при создании
      *                     или записи файла
      */
+    @Override
     public void createTable(Table table) throws IOException {
         new File("data").mkdirs();
         String fileName = "data/" + table.getName() + ".json";
@@ -58,6 +59,7 @@ public class Repository {
      * @throws IOException если файл не существует или произошла
      *                     ошибка при чтении
      */
+    @Override
     public Table getTable(String tableName) throws IOException {
 
         String fileName = "data/" + tableName + ".json";
@@ -71,6 +73,7 @@ public class Repository {
      * @param tableName имя таблицы, которую необходимо удалить
      * @throws IllegalArgumentException если файл таблицы не удалось удалить
      */
+    @Override
     public void deleteTable(String tableName) {
 
         String fileName = "data/" + tableName + ".json";
@@ -92,6 +95,7 @@ public class Repository {
      * @param table новая версия таблицы, которую необходимо сохранить
      * @throws IOException если произошла ошибка при записи файла
      */
+    @Override
     public void writeTable(Table table) throws IOException {
 
         String fileName = "data/" + table.getName() + ".json";
@@ -99,6 +103,15 @@ public class Repository {
         objectMapper.writeValue(new File(fileName), table);
     }
 
+    /**
+     * Возвращает список всех таблиц, сохранённых в JSON-файлах
+     * в директории {@code data}.
+     *
+     * @return список таблиц; если директория {@code data} не существует
+     *         или не содержит JSON-файлов, возвращается пустой список
+     * @throws IOException если не удалось прочитать JSON-файл
+     */
+    @Override
     public List<Table> listTables() throws IOException {
         List<Table> tables = new ArrayList<>();
         File[] files = new File("data").listFiles();
@@ -112,6 +125,14 @@ public class Repository {
         return tables;
     }
 
+    /**
+     * Проверяет, существует ли таблица с указанным именем.
+     *
+     * @param tableName имя таблицы
+     * @return {@code true}, если JSON-файл таблицы существует,
+     *         иначе {@code false}
+     */
+    @Override
     public boolean exists(String tableName) {
         return new File("data/" + tableName + ".json").exists();
     }
