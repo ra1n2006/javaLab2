@@ -146,15 +146,21 @@ public class CommandLineInterface {
         }
         m = CREATE_INDEX.matcher(query);
         if (m.matches()) {
-            return "Команда CREATE INDEX пока не реализована. Ожидается реализация Service.";
+            String indexName = m.group(1);
+            String table = m.group(2);
+            String column = m.group(3);
+            return service.createIndex(indexName, table, column);
         }
         m = CREATE_TABLE.matcher(query);
         if (m.matches()) {
-            return "Команда CREATE TABLE пока не реализована. Ожидается реализация Service.";
+            String table = m.group(1);
+            String columns = m.group(2);
+            return service.createTable(table, columns);
         }
         m = DROP_TABLE.matcher(query);
         if (m.matches()) {
-            return "Команда DROP TABLE пока не реализована. Ожидается реализация Service.";
+            String table = m.group(1);
+            return service.dropTable(table);
         }
         String[] words = query.split("\\s+");
         String first = words[0].toUpperCase();

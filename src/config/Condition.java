@@ -1,19 +1,29 @@
 package config;
 
-import config.Operator;
-
 import java.util.List;
 import java.util.Map;
 
 public class Condition {
-    private String col;
-    private Operator op;
-    private Object value;
+    private final String col;
+    private final Operator op;
+    private final Object value;
 
     public Condition(String col, Operator op, Object value) {
         this.col = col;
         this.op = op;
         this.value = value;
+    }
+
+    public Operator getOp() {
+        return op;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public String getCol() {
+        return col;
     }
 
     private boolean result(Object actual) {
