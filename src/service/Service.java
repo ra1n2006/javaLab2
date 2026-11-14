@@ -13,10 +13,16 @@ import model.Table;
 import model.Index;
 import repository.Repository;
 
-
 public class Service {
     private final Repository repository;
 
+    /**
+     * Создаёт сервис для выполнения операций над таблицами.
+     * Если таблицы shops и goods отсутствуют, создаёт их
+     * со стандартной структурой.
+     *
+     * @param repository репозиторий для хранения и получения таблиц
+     */
     public Service(Repository repository) {
         this.repository = repository;
         if (!repository.exists("shops"))
@@ -28,6 +34,12 @@ public class Service {
                     "id INT PRIMARY KEY, name STRING, category STRING, price DOUBLE, shopId INT REFERENCES shops(id)");
     }
 
+    /**
+     * Возвращает список всех таблиц из репозитория.
+     *
+     * @return список существующих таблиц
+     * @throws TableException если произошла ошибка при чтении таблиц
+     */
     private List<Table> listTables() {
         try {
             return repository.listTables();
@@ -36,6 +48,17 @@ public class Service {
         }
     }
 
+    /**
+     * Выполняет запрос на выборку данных из таблицы.
+     * Поддерживает выбор всех столбцов или указанных столбцов,
+     * а также фильтрацию записей по условию.
+     * При поиске по условию равенства может использовать индексы.
+     *
+     * @param tableName название таблицы
+     * @param cols список выбираемых столбцов или "*" для всех столбцов
+     * @param condition условие фильтрации записей
+     * @return строковое представление результата запроса
+     */
     public String select(String tableName, String cols, String condition) {
         final List<String> colsList;
         List<List<Condition>> conditionList = new ArrayList<>();
@@ -63,6 +86,15 @@ public class Service {
         return sb.toString();
     }
 
+    /**
+     * Проверяет, существует ли в таблице запись с таким же значением
+     * первичного ключа, как у передаваемой записи.
+     *
+     * @param t таблица для проверки
+     * @param row запись, для которой проверяется уникальность первичного ключа
+     * @return true, если запись с таким первичным ключом уже существует,
+     *         иначе false
+     */
     private boolean findEqualPrimaryKey(Table t, Map<String, Object> row) {
         for (Column c : t.getColumns()) {
             if (c.isPrimaryKey()) {
@@ -77,6 +109,18 @@ public class Service {
         return false;
     }
 
+    /**
+     * Добавляет новую запись в указанную таблицу.
+     * Проверяет соответствие количества столбцов и значений,
+     * преобразует значения к типам столбцов и проверяет уникальность
+     * первичного ключа. После вставки перестраивает индексы таблицы.
+     *
+     * @param tableName название таблицы
+     * @param cols список столбцов, в которые вставляются значения;
+     *             если null, используются все столбцы таблицы
+     * @param values значения новой записи
+     * @return сообщение о результате операции
+     */
     public String insert(String tableName, String cols, String values) {
         final Table t = repository.getTable(tableName);
         List<String> names = (cols == null)
@@ -103,6 +147,16 @@ public class Service {
         return "Строка успешно добавлена";
     }
 
+    /**
+     * Удаляет из таблицы все записи, удовлетворяющие условию.
+     * Перед удалением проверяет, не используются ли удаляемые значения
+     * другими таблицами в качестве внешних ключей.
+     * После удаления перестраивает индексы таблицы.
+     *
+     * @param tableName название таблицы
+     * @param condition условие удаления записей; если null, выбираются все записи
+     * @return сообщение с количеством удалённых записей
+     */
     public String delete(String tableName, String condition) {
         final Table t = repository.getTable(tableName);
         List<List<Condition>> conditionList = (condition == null)
@@ -136,6 +190,17 @@ public class Service {
         return "Удалено строк: " + toDelete.size();
     }
 
+    /**
+     * Изменяет значения столбцов в записях, удовлетворяющих условию.
+     * Значения преобразуются к типам соответствующих столбцов.
+     * После обновления перестраивает индексы таблицы.
+     *
+     * @param tableName название таблицы
+     * @param set выражение с новыми значениями столбцов
+     * @param condition условие выбора записей для обновления;
+     *                  если null, обновляются все записи
+     * @return сообщение с количеством обновлённых записей
+     */
     public String update(String tableName, String set, String condition) {
         final Table t = repository.getTable(tableName);
 
@@ -161,6 +226,15 @@ public class Service {
         return "Обновлено строк: " + count;
     }
 
+    /**
+     * Создаёт новую таблицу с указанными столбцами.
+     * Разбирает определения столбцов, определяет их типы,
+     * первичные ключи, ограничения NOT NULL и внешние ключи.
+     *
+     * @param tableName название создаваемой таблицы
+     * @param columnDefs строка с определениями столбцов
+     * @return сообщение об успешном создании таблицы
+     */
     public String createTable(String tableName, String columnDefs) {
         if (repository.exists(tableName))
             throw new TableException("Таблица уже существует: " + tableName);
@@ -194,6 +268,14 @@ public class Service {
         return "Таблица " + tableName + " создана";
     }
 
+    /**
+     * Удаляет таблицу из репозитория.
+     * Перед удалением проверяет, не ссылаются ли на неё
+     * внешние ключи других таблиц.
+     *
+     * @param tableName название удаляемой таблицы
+     * @return сообщение об успешном удалении таблицы
+     */
     public String dropTable(String tableName) {
         if (!repository.exists(tableName))
             throw new TableException("Таблица не найдена: " + tableName);
@@ -210,6 +292,16 @@ public class Service {
         return "Таблица успешно удалена";
     }
 
+    /**
+     * Создаёт hash-индекс для указанного столбца таблицы.
+     * Для каждого уникального значения сохраняет список номеров строк,
+     * в которых встречается это значение. Значения null также индексируются.
+     *
+     * @param indexName название создаваемого индекса
+     * @param tableName название таблицы
+     * @param colName название индексируемого столбца
+     * @return сообщение об успешном создании индекса
+     */
     public String createIndex(String indexName, String tableName, String colName) {
         final Table t = repository.getTable(tableName);
         Column col = t.column(colName);
@@ -235,6 +327,16 @@ public class Service {
         return "Индекс создан";
     }
 
+    /**
+     * Возвращает записи, которые могут удовлетворять переданным условиям.
+     * Если условия позволяют использовать индекс по равенству,
+     * извлекает записи по сохранённым в индексе номерам строк.
+     * В остальных случаях возвращает все записи таблицы.
+     *
+     * @param t таблица, в которой выполняется поиск
+     * @param conditions разобранные условия запроса
+     * @return список записей-кандидатов для дальнейшей проверки условий
+     */
     private List<Map<String, Object>> findRows(
             Table t,
             List<List<Condition>> conditions
@@ -275,6 +377,13 @@ public class Service {
         return t.getRows();
     }
 
+    /**
+     * Перестраивает все индексы таблицы на основе её текущих записей.
+     * Очищает старые значения индексов и заново сохраняет номера строк
+     * для каждого значения индексируемого столбца.
+     *
+     * @param t таблица, индексы которой необходимо перестроить
+     */
     private void rebuildIndexes(Table t) {
         for (Index index : t.getIndexes().values()) {
             index.getValues().clear();

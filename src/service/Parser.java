@@ -12,6 +12,17 @@ import java.util.List;
 import java.util.Map;
 
 public class Parser {
+
+    /**
+     * Разбирает одиночное условие сравнения и преобразует его
+     * в объект Condition.
+     * Определяет оператор сравнения и преобразует значение
+     * правой части условия.
+     *
+     * @param cond строка с условием сравнения
+     * @return объект Condition с названием столбца, оператором и значением
+     * @throws SqlSyntaxException если условие содержит неподдерживаемый оператор
+     */
     public static Condition parseSingleCondition(String cond) {
         for (String sign : new String[]{">=", "<=", "=", ">", "<"}) {
             int i = cond.indexOf(sign);
@@ -30,6 +41,14 @@ public class Parser {
         throw new SqlSyntaxException("Не поддерживаемый знак условия");
     }
 
+    /**
+     * Разбирает составное условие WHERE на отдельные условия.
+     * Условия, объединённые оператором AND, помещаются в одну группу,
+     * а группы, объединённые оператором OR, разделяются.
+     *
+     * @param where строка с составным условием WHERE
+     * @return список групп условий, где каждая группа содержит условия AND
+     */
     public static List<List<Condition>> parseComplexCondition(String where) {
 
         return Arrays.stream(where.split("(?i)\\s+OR\\s+"))
@@ -39,6 +58,15 @@ public class Parser {
                 .toList();
     }
 
+    /**
+     * Преобразует строковое значение в соответствующий тип Java.
+     * Строки в одинарных кавычках преобразуются в String,
+     * логические значения — в Boolean, числа — в Integer или Double.
+     *
+     * @param row строковое представление значения
+     * @return значение соответствующего типа
+     * @throws TypeException если значение не удалось преобразовать в число
+     */
     public static Object parseValue(String row) {
         row = row.trim();
         if (row.startsWith("'") && row.endsWith("'") && row.length() >= 2)
@@ -54,6 +82,15 @@ public class Parser {
         }
     }
 
+    /**
+     * Разбирает выражение SET и извлекает пары
+     * «название столбца — новое значение».
+     * Несколько присваиваний разделяются запятыми.
+     *
+     * @param set строка с выражениями присваивания
+     * @return отображение названий столбцов на новые значения
+     * @throws SqlSyntaxException если в присваивании отсутствует знак равно
+     */
     public static Map<String, Object> parseSet(String set) {
         Map<String, Object> table = new HashMap<>();
         for (String part : set.split(",")) {
@@ -64,6 +101,14 @@ public class Parser {
         return table;
     }
 
+    /**
+     * Извлекает информацию о внешнем ключе из определения столбца.
+     * Определяет название связанной таблицы и столбца.
+     *
+     * @param def определение столбца, содержащее REFERENCES
+     * @return объект ForeignKey с названием таблицы и столбца
+     * @throws SqlSyntaxException если ссылка не содержит круглых скобок
+     */
     public static ForeignKey parseForeignKey(String def) {
         String ref = def.substring(def.toUpperCase().indexOf("REFERENCES") + 10).trim();
         if (!ref.contains("(") || !ref.contains(")"))

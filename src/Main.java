@@ -10,7 +10,6 @@ public class Main {
      * @param args аргументы командной строки (не используются)
      */
     public static void main(String[] args) {
-
         new CommandLineInterface().run();
     }
 }

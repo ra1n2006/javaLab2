@@ -2,11 +2,23 @@ package model;
 
 import exception.TypeException;
 
+/**
+ * Определяет поддерживаемые типы данных столбцов таблицы.
+ */
 public enum ColumnType {
     INT,
     DOUBLE,
     STRING,
     BOOLEAN;
+
+    /**
+     * Приводит переданное значение к типу текущего перечисления.
+     * Значение null возвращается без изменений.
+     *
+     * @param v значение для преобразования
+     * @return значение, соответствующее типу текущего перечисления
+     * @throws TypeException если значение нельзя привести к требуемому типу
+     */
     public Object cast(Object v) throws TypeException {
         if (v == null) return null;
 
