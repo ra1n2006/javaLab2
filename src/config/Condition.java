@@ -1,5 +1,7 @@
 package config;
 
+import exception.TypeException;
+
 import java.util.List;
 import java.util.Map;
 
@@ -38,10 +40,9 @@ public class Condition {
         else if (actual instanceof Boolean a && value instanceof Boolean b)
             c = Boolean.compare(a, b);
         else if (actual instanceof String a && value instanceof String b)
-            c = a.compareTo(b);
-        else
-            throw new IllegalArgumentException("Нельзя сравнить столбец " + col + " (" +
-                    actual.getClass().getSimpleName() + ") со значением " + value);
+            c = a.compareTo(b);else
+            throw new TypeException("Столбец и значение имеют разные типы");
+
 
         return switch (op) {
             case EQ -> c == 0;
