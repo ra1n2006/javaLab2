@@ -2,6 +2,10 @@ package cli;
 
 import java.util.Scanner;
 
+import exception.ConstraintException;
+import exception.SqlSyntaxException;
+import exception.TableException;
+import exception.TypeException;
 import repository.Repository;
 import service.Service;
 
@@ -96,7 +100,7 @@ public class CommandLineInterface {
             }
             try {
                 System.out.println(execute(query));
-            } catch (IllegalArgumentException e) {
+            } catch (SqlSyntaxException | TableException | ConstraintException | TypeException e) {
                 System.out.println("Ошибка: " + e.getMessage());
             } catch (Exception e) {
                 System.out.println("Внутренняя ошибка: " + e);
