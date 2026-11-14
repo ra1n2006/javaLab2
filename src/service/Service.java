@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.*;
 import config.*;
 import model.Column;
+import model.ColumnType;
+import model.ForeignKey;
 import model.Table;
 import repository.Repository;
 
@@ -35,13 +37,15 @@ class Parser {
                 .toList();
     }
 
-    public static Object parseValue(String row) {
-        row = row.trim();
-        if (row.startsWith("'") && row.endsWith("'") && row.length() >= 2)
-            return row.substring(1, row.length() - 1);
-        if (row.contains("."))
-            return Double.parseDouble(row);
-        return Integer.parseInt(row);
+    public static Object parseValue(String strk) {
+        strk = strk.trim();
+        if (strk.startsWith("'") && strk.endsWith("'") && strk.length() >= 2)
+            return strk.substring(1, strk.length() - 1);
+        if (strk.contains("."))
+            return Double.parseDouble(strk);
+        if (strk.equalsIgnoreCase("true") || strk.equalsIgnoreCase("false"))
+            return Boolean.parseBoolean(strk);
+        return Integer.parseInt(strk);
     }
 
     public static Map<String, Object> parseSet(String set) {
@@ -53,17 +57,34 @@ class Parser {
         }
         return table;
     }
+
+    public static ForeignKey parseForeignKey(String def) {
+        String ref = def.substring(def.toUpperCase().indexOf("REFERENCES") + 10).trim();   // "shops(id)"
+        if (!ref.contains("(") || !ref.contains(")"))
+            throw new IllegalArgumentException();
+
+        String table = ref.substring(0, ref.indexOf('(')).trim();                          // "shops"
+        String column = ref.substring(ref.indexOf('(') + 1, ref.indexOf(')')).trim();      // "id"
+        return new ForeignKey(table, column);
+    }
 }
 
 public class Service {
-    private Repository repository;
+    private final Repository repository;
 
     public Service(Repository repository) {
         this.repository = repository;
+        if (!repository.exists("shops"))
+            createTable("shops",
+                    "id INT PRIMARY KEY, address STRING, city STRING, isOpen24h BOOLEAN");
+
+        if (!repository.exists("goods"))
+            createTable("goods",
+                    "id INT PRIMARY KEY, name STRING, category STRING, price DOUBLE, shopId INT REFERENCES shops(id)");
     }
 
     public String select(String tableName, String cols, String condition) {
-        List<String> colsList = new ArrayList<>();
+        final List<String> colsList;
         List<List<Condition>> conditionList = new ArrayList<>();
         final Table t;
         try {
@@ -79,26 +100,41 @@ public class Service {
         if (condition != null) {
             conditionList = Parser.parseComplexCondition(condition);
         }
-
-        StringBuilder sb = new StringBuilder(String.join(" | ", colsList)).append('\n');
-        int count = 0;
-        for (Map<String, Object> row : t.getRows()) {
+        List<Map<String, Object>> rows = findRows(t, conditionList);
+        String header = String.join(" | ", colsList);
+        StringBuilder sb = new StringBuilder(header).append('\n');
+        sb.append("-".repeat(header.length())).append('\n');
+        for (Map<String, Object> row : rows) {
             if (!Condition.matches(row, conditionList)) continue;
             for (String col : colsList) {
                 sb.append(row.get(col)).append(" | ");
             }
             sb.setLength(sb.length() - 3);
             sb.append('\n');
-            count++;
         }
-        return sb.append("Строк: ").append(count).toString();
+        return sb.toString();
+    }
+
+    private boolean findEqualPrimaryKey(Table t, Map<String, Object> row) {
+        for (Column c : t.getColumns()) {
+            if (c.isPrimaryKey()) {
+                Object newValue = row.get(c.getName());
+                for (Map<String, Object> existing : t.getRows()) {
+                    if (newValue != null && newValue.equals(existing.get(c.getName()))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public String insert(String tableName, String cols, String values) throws IllegalArgumentException {
-        Table t = new Table();
+        final Table t;
         try {
             t = repository.getTable(tableName);
         }catch (Exception e) {
+            e.printStackTrace();
             return "таблицы не существует";
         }
         List<String> names = (cols == null)
@@ -116,9 +152,12 @@ public class Service {
             row.put(col.getName(), col.getType().cast(Parser.parseValue(vals[i])));
         }
 
+        if (findEqualPrimaryKey(t, row))
+            return "Ошибка: такой первичный ключ уже существует";
+
         t.getRows().add(row);
         try {
-            repository.createTable(t);
+            repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при записи данных";
         }
@@ -126,7 +165,7 @@ public class Service {
     }
 
     public String delete(String tableName, String condition) {
-        Table t = new Table();
+        final Table t;
         try {
             t = repository.getTable(tableName);
         }catch (Exception e) {
@@ -136,13 +175,41 @@ public class Service {
                 ? new ArrayList<>()
                 : Parser.parseComplexCondition(condition);
 
-        t.getRows().removeIf(row -> Condition.matches(row, conditionList));
+        List<Map<String, Object>> toDelete = new ArrayList<>();
+        for (Map<String, Object> row : t.getRows()) {
+            if (Condition.matches(row, conditionList)) toDelete.add(row);
+        }
+
+        List<Table> tables;
         try {
-            repository.createTable(t);
-        }catch (IOException e) {
+            tables = repository.listTables();
+        } catch (IOException e) {
+            return "ошибка чтения таблиц";
+        }
+
+        for (Table other : tables) {
+            for (Column c : other.getColumns()) {
+                ForeignKey fk = c.getForeignKey();
+                if (fk == null || !fk.getTable().equalsIgnoreCase(tableName)) continue;
+
+                for (Map<String, Object> parentRow : toDelete) {
+                    Object parentValue = parentRow.get(fk.getColumn());
+                    for (Map<String, Object> childRow : other.getRows()) {
+                        if (parentValue != null && parentValue.equals(childRow.get(c.getName()))) {
+                            return "Нельзя удалить: ключ таблицы является внешним ключом другой таблицы";
+                        }
+                    }
+                }
+            }
+        }
+
+        t.getRows().removeAll(toDelete);
+        try {
+            repository.writeTable(t);
+        } catch (IOException e) {
             return "ошибка при удалении данных";
         }
-        return "Операция удаления выполнена";
+        return "Удалено строк: " + toDelete.size();
     }
 
     public String update(String tableName, String set, String condition) {
@@ -171,10 +238,108 @@ public class Service {
             count++;
         }
         try {
-            repository.createTable(t);
+            repository.writeTable(t);
         }catch (IOException e) {
             return "ошибка при удалении данных";
         }
         return "Обновлено строк: " + count;
+    }
+
+    public String createTable(String tableName, String columnDefs) {
+        if (repository.exists(tableName))
+            throw new IllegalArgumentException("Таблица уже существует: " + tableName);
+
+        List<Column> columns = new ArrayList<>();
+        for (String def : columnDefs.split(",")) {
+            String[] w = def.trim().split("\\s+");
+            if (w.length < 2)
+                throw new IllegalArgumentException("Неверное описание столбца: " + def.trim());
+
+            Column col = new Column(w[0], ColumnType.valueOf(w[1].toUpperCase()));
+            String rest = def.toUpperCase();
+
+            if (rest.contains("PRIMARY KEY")) {
+                col.setPrimaryKey(true);
+                col.setNotNull(true);
+            }
+            if (rest.contains("NOT NULL")) col.setNotNull(true);
+            if (rest.contains("REFERENCES")) col.setForeignKey(Parser.parseForeignKey(def));
+
+            columns.add(col);
+        }
+
+        try {
+            repository.createTable(new Table(tableName, columns));
+        } catch (IOException e) {
+            return "ошибка при записи данных";
+        }
+        return "Таблица " + tableName + " создана";
+    }
+
+    public String dropTable(String tableName) {
+        if (!repository.exists(tableName))
+            return "Таблица не найдена: " + tableName;
+
+        List<Table> tables;
+        try {
+            tables = repository.listTables();
+        } catch (IOException e) {
+            return "ошибка чтения таблиц";
+        }
+
+        for (Table t : tables) {
+            if (t.getName().equalsIgnoreCase(tableName)) continue;
+            for (Column c : t.getColumns()) {
+                if (c.getForeignKey() != null && c.getForeignKey().getTable().equalsIgnoreCase(tableName)) {
+                    return "Нельзя удалить: на таблицу ссылается " + t.getName() + "." + c.getName();
+                }
+            }
+        }
+        repository.deleteTable(tableName);
+        return "Таблица успешно удалена";
+    }
+
+    public String createIndex(String indexName, String tableName, String colName) {
+        final Table t;
+        try {
+            t = repository.getTable(tableName);
+        } catch (Exception e) {
+            return "таблицы не существует";
+        }
+
+        Column col = t.column(colName);
+        if (t.getIndexes().containsKey(indexName))
+            throw new IllegalArgumentException("Индекс уже существует: " + indexName);
+
+        t.getIndexes().put(indexName, col.getName());
+        try {
+            repository.writeTable(t);
+        } catch (IOException e) {
+            return "ошибка при записи данных";
+        }
+        return "Индекс создан";
+    }
+
+    private List<Map<String, Object>> findRows(Table t, List<List<Condition>> conditions) {
+        if (conditions.size() != 1) return t.getRows();
+
+        for (Condition c : conditions.get(0)) {
+            boolean isEquals = c.getOp() == Operator.EQ || c.getOp() == Operator.EQS;
+            if (isEquals && t.getIndexes().containsValue(c.getCol())) {
+                // индекс: значение столбца -> строки
+                Map<Object, List<Map<String, Object>>> index = new HashMap<>();
+                for (Map<String, Object> row : t.getRows()) {
+                    Object cell = row.get(c.getCol());
+                    if (!index.containsKey(cell)) {
+                        index.put(cell, new ArrayList<>());
+                    }
+                    index.get(cell).add(row);
+                }
+                Object value = t.column(c.getCol()).getType().cast(c.getValue());
+                if (!index.containsKey(value)) return new ArrayList<>();
+                return index.get(value);
+            }
+        }
+        return t.getRows();
     }
 }

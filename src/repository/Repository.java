@@ -6,6 +6,8 @@ import model.Table;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Репозиторий для работы с таблицами, хранящимися в JSON-файлах.
@@ -41,7 +43,7 @@ public class Repository {
      *                     или записи файла
      */
     public void createTable(Table table) throws IOException {
-
+        new File("data").mkdirs();
         String fileName = "data/" + table.getName() + ".json";
 
         objectMapper.writeValue(new File(fileName), table);
@@ -95,5 +97,22 @@ public class Repository {
         String fileName = "data/" + table.getName() + ".json";
 
         objectMapper.writeValue(new File(fileName), table);
+    }
+
+    public List<Table> listTables() throws IOException {
+        List<Table> tables = new ArrayList<>();
+        File[] files = new File("data").listFiles();
+        if (files == null) return tables;                       // папки data ещё нет
+
+        for (File file : files) {
+            if (file.getName().endsWith(".json")) {
+                tables.add(objectMapper.readValue(file, Table.class));
+            }
+        }
+        return tables;
+    }
+
+    public boolean exists(String tableName) {
+        return new File("data/" + tableName + ".json").exists();
     }
 }
