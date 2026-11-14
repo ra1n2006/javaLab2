@@ -8,7 +8,11 @@ import service.Service;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
+/**
+ * Класс реализует интерфейс командной строки для взаимодействия с базой данных.
+ * Позволяет вводить SQL-запросы, обрабатывать их и передавать
+ * соответствующие команды в Service.
+ */
 public class CommandLineInterface {
 
     private final Scanner scanner;
@@ -43,12 +47,23 @@ public class CommandLineInterface {
             "DROP\\s+TABLE\\s+(\\w+)",
             Pattern.CASE_INSENSITIVE);
 
-
+    /**
+     * Создаёт интерфейс командной строки.
+     * Инициализирует Scanner для чтения пользовательского ввода
+     * и Service для выполнения SQL-запросов.
+     */
     public CommandLineInterface() {
         this.scanner = new Scanner(System.in);
         this.service = new Service(new Repository());
     }
 
+    /**
+     * Считывает SQL-запрос, введённый пользователем.
+     * Поддерживает ввод запроса в несколько строк.
+     *
+     * @return считанный SQL-запрос без завершающей точки с запятой
+     *         или null, если ввод завершён
+     */
     private String readQuery() {
         StringBuilder sb = new StringBuilder();
         System.out.print("sql> ");
@@ -64,6 +79,11 @@ public class CommandLineInterface {
         return null;
     }
 
+    /**
+     * Запускает основной цикл работы интерфейса командной строки.
+     * Считывает запросы пользователя, обрабатывает команды HELP и EXIT,
+     * выполняет SQL-запросы и выводит результаты или сообщения об ошибках.
+     */
     public void run() {
         System.out.println("Введите SQL-запрос, в конце ;. Выход: EXIT;. Справка: HELP;");
         while (true) {
@@ -84,6 +104,10 @@ public class CommandLineInterface {
         }
     }
 
+    /**
+     * Выводит справочную информацию о поддерживаемых SQL-командах
+     * и примеры их использования.
+     */
     private void printHelp() {
         System.out.println("Поддерживаемые SQL-команды:");
         System.out.println();
@@ -116,6 +140,16 @@ public class CommandLineInterface {
         System.out.println("Каждый SQL-запрос должен заканчиваться символом ;");
     }
 
+    /**
+     * Определяет тип SQL-запроса, проверяет его структуру
+     * и передаёт соответствующую команду в Service.
+     *
+     * @param query SQL-запрос, введённый пользователем
+     * @return результат выполнения запроса или сообщение о том,
+     *         что команда пока не реализована
+     * @throws IllegalArgumentException если запрос имеет неправильный
+     *                                   синтаксис или содержит неизвестную команду
+     */
     private String execute(String query) {
         Matcher m = SELECT.matcher(query);
         if (m.matches()) {
