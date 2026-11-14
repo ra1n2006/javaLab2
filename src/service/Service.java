@@ -98,12 +98,8 @@ public class Service {
             throw new ConstraintException("Такой первичный ключ уже существует");
 
         t.getRows().add(row);
-        try {
-            rebuildIndexes(t);
-            repository.writeTable(t);
-        }catch (IOException e) {
-            return "ошибка при записи данных";
-        }
+        rebuildIndexes(t);
+        repository.writeTable(t);
         return "Строка успешно добавлена";
     }
 
@@ -135,13 +131,8 @@ public class Service {
         }
 
         t.getRows().removeAll(toDelete);
+        rebuildIndexes(t);
         repository.writeTable(t);
-        try {
-            rebuildIndexes(t);
-            repository.writeTable(t);
-        } catch (IOException e) {
-            return "ошибка при удалении данных";
-        }
         return "Удалено строк: " + toDelete.size();
     }
 
@@ -165,12 +156,8 @@ public class Service {
             row.putAll(changes);
             count++;
         }
-        try {
-            rebuildIndexes(t);
-            repository.writeTable(t);
-        }catch (IOException e) {
-            return "ошибка при удалении данных";
-        }
+        rebuildIndexes(t);
+        repository.writeTable(t);
         return "Обновлено строк: " + count;
     }
 

@@ -1,5 +1,4 @@
 import cli.CommandLineInterface;
-//import service.GoodsService;
 
 /**
  * Точка входа в программу.
