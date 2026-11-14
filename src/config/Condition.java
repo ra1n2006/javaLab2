@@ -56,8 +56,16 @@ public class Condition {
     public static boolean matches(Map<String, Object> row, List<List<Condition>> where) {
         if (where.isEmpty()) return true;
 
-        return where.stream().anyMatch(group ->
-                group.stream().allMatch(cond ->
-                        cond.result(row.get(cond.col))));
+        for (List<Condition> group : where) {
+            boolean groupMatch = true;
+            for (Condition cond : group) {
+                if (!cond.result(row.get(cond.col))) {
+                    groupMatch = false;
+                    break;
+                }
+            }
+            if (groupMatch) return true;
+        }
+        return false;
     }
 }
